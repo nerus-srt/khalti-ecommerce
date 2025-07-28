@@ -1,0 +1,67 @@
+version: '3'
+services:
+
+  #PHP Service
+  ecommapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: digitalocean.com/php
+    container_name: ecommapp
+    restart: unless-stopped
+    tty: true
+    environment:
+      SERVICE_NAME: ecommapp
+      SERVICE_TAGS: dev
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - ecommapp-network
+
+  #Nginx Service
+  ecommappserver:
+    image: nginx:alpine
+    container_name: ecommappserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8081:80"
+      - "401:443"
+    volumes:
+      - ./:/var/www
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+      - ./nginx/log/:/var/log/nginx/
+    networks:
+      - ecommapp-network
+
+  #MySQL Service
+  ecommappdb:
+    image: mysql:5.7.22
+    container_name: ecommappdb
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "33061:3306"
+    environment:
+      MYSQL_DATABASE: ecommapp_db
+      MYSQL_ROOT_PASSWORD: P@ssw0rd
+      MYSQL_USER: root
+      MYSQL_USER_PASSWORD: P@ssw0rd
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - ecommappdb:/var/lib/mysql/
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - ecommapp-network
+
+#Docker Networks
+networks:
+  ecommapp-network:
+    driver: bridge
+#Volumes
+volumes:
+  ecommappdb:
+    driver: local
